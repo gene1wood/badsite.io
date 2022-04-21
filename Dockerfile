@@ -1,8 +1,8 @@
-# Start with Ubuntu 16.04 (LTS), and build badsite.io up from there
-FROM ubuntu:16.04
+# Start with Ubuntu 20.04 (LTS), and build badsite.io up from there
+FROM ubuntu:20.04
 MAINTAINER April King <april@twoevils.org>
 EXPOSE 80 443
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && apt-get install -y \
     build-essential \
     git \
     libffi-dev \
