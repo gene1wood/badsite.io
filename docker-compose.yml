@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  badsite:
+    image: badsite:latest
+    ports:
+      - "80:80"
+      - "443:443"
+      - "1000-1024:1000-1024"
+    environment:
+      DOMAIN: badsite.security.allizom.org
