@@ -8,3 +8,6 @@ services:
       - "1000-1024:1000-1024"
     environment:
       DOMAIN: badsite.security.allizom.org
+      CROSS_ORIGIN_DOMAIN: badsite.infosec.mozilla.org
+      TEST_DOMAIN: badsite.security.allizom.org
+      CROSS_ORIGIN_TEST_DOMAIN: badsite.infosec.mozilla.org
