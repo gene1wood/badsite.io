@@ -2,6 +2,8 @@
 
 DOMAIN ?= badsite.io
 TEST_DOMAIN ?= badsite.test
+CROSS_ORIGIN_DOMAIN ?= badsite.cross-origin.io
+CROSS_ORIGIN_TEST_DOMAIN ?= badsite.cross-origin.test
 
 # This should bring up a full test server in docker from a bare repo.
 # Certs are generated outside the docker container, for persistence.
@@ -20,17 +22,17 @@ deploy: certs-prod jekyll-prod upload nginx
 
 .PHONY: jekyll-test
 jekyll-test:
-	DOMAIN="$(TEST_DOMAIN)" CROSS_ORIGIN_DOMAIN="badsite.cross-origin.test" jekyll build
+	DOMAIN="$(TEST_DOMAIN)" CROSS_ORIGIN_DOMAIN="$(CROSS_ORIGIN_TEST_DOMAIN)" jekyll build
 
 .PHONY: jekyll-prod
 jekyll-prod:
-	DOMAIN="$(DOMAIN)" CROSS_ORIGIN_DOMAIN="badsite.cross-origin.io" jekyll build
+	DOMAIN="$(DOMAIN)" CROSS_ORIGIN_DOMAIN="$(CROSS_ORIGIN_DOMAIN)" jekyll build
 
 ################ Certs ################
 
 .PHONY: certs-test
 certs-test:
-	cd certs && make test O=sets/test D="badsite.test cross-origin.test"
+	cd certs && make test O=sets/test D="$(TEST_DOMAIN) $(CROSS_ORIGIN_TEST_DOMAIN)"
 	cd certs/sets && rm -rf current && cp -R test current
 
 	rm -rf common/certs/*.crt
@@ -38,7 +40,7 @@ certs-test:
 
 .PHONY: certs-prod
 certs-prod:
-	cd certs && make prod O=sets/prod D="$(DOMAIN) cross-origin.io"
+	cd certs && make prod O=sets/prod D="$(DOMAIN) $(CROSS_ORIGIN_DOMAIN)"
 	cd certs/sets && rm -rf current && cp -R prod current
 
 	rm -rf common/certs/*.crt
