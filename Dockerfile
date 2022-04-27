@@ -19,7 +19,7 @@ RUN gem install jekyll
 # Install badsite.io
 ADD . badsite.io
 WORKDIR badsite.io
-RUN make inside-docker DOMAIN=$domain TEST_DOMAIN=$test_domain CROSS_ORIGIN_DOMAIN=$cross_origin_domain CROSS_ORIGIN_TEST_DOMAIN=$sross_origin_test_domain
+RUN make inside-docker DOMAIN=$domain TEST_DOMAIN=$test_domain CROSS_ORIGIN_DOMAIN=$cross_origin_domain CROSS_ORIGIN_TEST_DOMAIN=$cross_origin_test_domain
 
 # Start things up!
 CMD nginx && tail -f /var/log/nginx/access.log /var/log/nginx/error.log
