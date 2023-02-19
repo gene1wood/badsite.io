@@ -1,5 +1,4 @@
-# Start with Ubuntu 16.04 (LTS), and build badsite.io up from there
-FROM ubuntu:16.04
+    FROM ubuntu:22.04
 MAINTAINER April King <april@twoevils.org>
 EXPOSE 80 443
 RUN apt-get update && apt-get install -y \
