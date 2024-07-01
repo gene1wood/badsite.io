@@ -42,6 +42,93 @@ cp gen/crt/ca-root.crt pregen/crt/ca-root.crt
 cp gen/key/ca-root.key pregen/key/ca-root.key
 ```
 
+### Deploying with docker
+
+1. Create DNS records in two different domains, for example badsite.security.allizom.org and badsite.infosec.mozilla.org
+   that point to your server
+2. Create DNS wildcard records for each domain as well (e.g. *.badsite.security.allizom.org)
+3. Get docker
+   ```shell
+   wget -qO - https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+   apt-add-repository https://download.docker.com/linux/ubuntu
+   apt install docker-ce make
+   ```
+4. Checkout the code
+   ```shell
+   git clone https://github.com/gene1wood/badsite.io.git && \
+   cd badsite.io && \
+   git checkout update_badsite
+   ```
+5. Initiate a certificate request
+   ```shell
+   certbot certonly --agree-tos --no-eff-email \
+   -m user@example.com --manual --manual-public-ip-logging-ok \
+   --preferred-challenges dns \
+   -d 'badsite.security.allizom.org' \
+   -d '*.badsite.security.allizom.org' \
+   -d '*.badsite.infosec.mozilla.org'
+   ```
+6. Copy paste the public key that certbot outputs into Route53 or your DNS
+7. Put the cert in the right location
+   ```shell
+   mkdir -p certs/sets/current/gen/chain certs/sets/current/gen/key
+   cp -v /etc/letsencrypt/live/badsite.security.allizom.org/fullchain.pem certs/sets/current/gen/chain/wildcard-rsa2048.pem
+   cp -v /etc/letsencrypt/live/badsite.security.allizom.org/privkey.pem certs/sets/current/gen/key/leaf-rsa2048.key
+   ```
+8. Build the docker image
+   ```shell
+   docker build --build-arg domain=badsite.security.allizom.org \
+     --build-arg test_domain=badsite.security.allizom.org \
+     --build-arg cross_origin_domain=badsite.infosec.mozilla.org \
+     --build-arg cross_origin_test_domain=badsite.infosec.mozilla.org \
+     -t badsite .
+   ```
+9. Get docker-compose
+   ```shell
+   curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+   chmod +x /usr/local/bin/docker-compose
+   ```
+10. Create Docker Compose Systemd Service by creating a /etc/systemd/system/docker-compose@.service file with the contents
+   ```text
+   [Unit]
+   Description=%i service with docker compose
+   Requires=docker.service
+   After=docker.service
+   
+   [Service]
+   WorkingDirectory=/etc/docker/compose/%i
+   Restart=always
+   ExecStartPre=/usr/local/bin/docker-compose down --volumes
+   ExecStartPre=/usr/local/bin/docker-compose rm -v --force
+   ExecStartPre=-/bin/bash -c 'docker volume ls --quiet --filter "name=%i_" | xargs --no-run-if-empty docker volume rm'
+   ExecStartPre=-/bin/bash -c 'docker network ls --quiet --filter "name=%i_" | xargs --no-run-if-empty docker network rm'
+   ExecStartPre=-/bin/bash -c 'docker ps --all --quiet --filter "name=%i_*" | xargs --no-run-if-empty docker rm'
+   ExecStart=/usr/local/bin/docker-compose up --no-color
+   ExecStop=/usr/local/bin/docker-compose down --volumes
+   
+   [Install]
+   WantedBy=multi-user.target
+   ```
+11. Create a service
+   ```shell
+   mkdir -p /etc/docker/compose/badsite/
+   cp docker-compose.yml /etc/docker/compose/badsite/
+   systemctl start docker-compose@badsite
+   systemctl enable docker-compose@badsite
+   ```
+
+This process doesn't enable automatic certificate renewal as the DNS is managed outside of the instance. With this setup
+you'll need to update DNS manually to renew the certificate which would look like
+
+```shell
+certbot certonly --agree-tos --no-eff-email -m user@example.com --manual --manual-public-ip-logging-ok --preferred-challenges dns -d 'badsite.security.allizom.org' -d '*.badsite.security.allizom.org' -d '*.badsite.infosec.mozilla.org'
+cp -v /etc/letsencrypt/live/badsite.security.allizom.org/fullchain.pem /root/badsite.io/certs/sets/current/gen/chain/wildcard-rsa2048.pem
+cp -v /etc/letsencrypt/live/badsite.security.allizom.org/privkey.pem /root/badsite.io/certs/sets/current/gen/key/leaf-rsa2048.key
+docker build --build-arg domain=badsite.security.allizom.org   --build-arg test_domain=badsite.security.allizom.org   --build-arg cross_origin_domain=badsite.infosec.mozilla.org   --build-arg cross_origin_test_domain=badsite.infosec.mozilla.org   -t badsite /root/badsite.io
+systemctl stop docker-compose@badsite
+systemctl start docker-compose@badsite
+```
+
 ## Acknowledgments
 
 badsite.io is hosted on Mozilla infrastructure and co-maintained by:
